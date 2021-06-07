@@ -4,10 +4,10 @@ import (
 	"strconv"
 	"strings"
 
-	md "github.com/gtyrin/ds/audio/metadata"
-	"github.com/gtyrin/ds/collection"
-	"github.com/gtyrin/ds/intutils"
-	tp "github.com/gtyrin/ds/stringutils/parser"
+	md "github.com/gtyrin/go-audiomd"
+	collection "github.com/gtyrin/go-collection"
+	intutils "github.com/gtyrin/go-intutils"
+	tp "github.com/gtyrin/go-stringutils"
 )
 
 // coverarchive.org structure:

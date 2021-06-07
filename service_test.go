@@ -1,10 +1,11 @@
 package client
 
 import (
-	md "github.com/gtyrin/ds/audio/metadata"
 	"encoding/json"
 	"io/ioutil"
 	"testing"
+
+	md "github.com/gtyrin/go-audiomd"
 )
 
 // Тестовые файлы.
