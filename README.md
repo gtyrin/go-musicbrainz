@@ -1,6 +1,7 @@
 # go-musicbrainz #
 
-Клиент [Musicbrainz](https://musicbrainz.org/doc/MusicBrainz_API)
+Микросервис-клиент [Musicbrainz](https://musicbrainz.org/doc/MusicBrainz_API).
+Обмен сообщениями реализован с использованием [RabbitMQ](https://www.rabbitmq.com).
 
 Пример использования:
 
@@ -32,7 +33,7 @@
 			    musicbrainz.ServiceName, musicbrainz.ServiceVersion, srv.RunModeName(*idle)))
 
 	    cl, err := musicbrainz.NewMusicbrainzClient(*connstr)
-	    srv.FailOnError(err, "Failed to create Discogs client")
+	    srv.FailOnError(err, "Failed to create Musicbrainz client")
 
 	    err = cl.TestPollingFrequency()
 	    srv.FailOnError(err, "Failed to test polling frequency")
