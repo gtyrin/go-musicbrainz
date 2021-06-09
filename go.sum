@@ -10,6 +10,8 @@ github.com/gtyrin/go-intutils v0.0.1 h1:VXrDw1tZFW8mKbxmCfACQsEqaS/38mFbIO9HAcIR
 github.com/gtyrin/go-intutils v0.0.1/go.mod h1:3fkjdaBxdPTIJdRwPwEvld6x4pHgE5foNCBrqcXssk8=
 github.com/gtyrin/go-service v0.0.1 h1:6v/XajnyqtJs2sg+bI40CnPYahZn2uJXCFyOMzcLBm8=
 github.com/gtyrin/go-service v0.0.1/go.mod h1:nWZ+rpsLXEAdjli5CMQ97ywBqkZyfg31GZAu+1U8xwc=
+github.com/gtyrin/go-service v0.0.2 h1:qPVcdOJ/0Q2TWd/w9I9Vx8+61iBtDZbsb1czPjENYCg=
+github.com/gtyrin/go-service v0.0.2/go.mod h1:d7WDVo2v8PliKVDs2nOrEVs+nqx+5B7O5tnCpj5cTpc=
 github.com/gtyrin/go-stringutils v0.0.0-20210607110724-042584dd90d8/go.mod h1:gxuUqRjlJn+5wFkBfGt9NwOjAKBGS8P2N3lQDEwXvkU=
 github.com/gtyrin/go-stringutils v0.0.1 h1:O50secvAOUb1SSIaFUYERHLevlj1quW+juunCmCx6oc=
 github.com/gtyrin/go-stringutils v0.0.1/go.mod h1:gxuUqRjlJn+5wFkBfGt9NwOjAKBGS8P2N3lQDEwXvkU=
@@ -26,6 +28,8 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210603125802-9665404d3644 h1:CA1DEQ4NdKphKeL70tvsWNdT5oFh1lOjihRcEDROi0I=
 golang.org/x/sys v0.0.0-20210603125802-9665404d3644/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20210608053332-aa57babbf139 h1:C+AwYEtBp/VQwoLntUmQ/yx3MS9vmZaKNdw5eOpoQe8=
+golang.org/x/sys v0.0.0-20210608053332-aa57babbf139/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v22aHH28wwpauUhK9Oo=

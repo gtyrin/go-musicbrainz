@@ -1,4 +1,4 @@
-package client
+package musicbrainz
 
 import (
 	"bytes"
@@ -20,7 +20,6 @@ const (
 	ServiceSubsystem   = "audio"
 	ServiceName        = "musicbrainz"
 	ServiceDescription = "Musicbrainz service client"
-	ServiceVersion     = "1.0.11"
 )
 
 // Suggestion constants
@@ -106,7 +105,6 @@ func (m *Musicbrainz) RunCmdByName(cmd string, delivery *amqp.Delivery) {
 			Subsystem:   ServiceSubsystem,
 			Name:        ServiceName,
 			Description: ServiceDescription,
-			Version:     ServiceVersion,
 		}
 		go m.Service.Info(delivery, &version)
 	default:

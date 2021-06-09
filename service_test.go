@@ -1,4 +1,4 @@
-package client
+package musicbrainz
 
 import (
 	"encoding/json"
@@ -10,8 +10,8 @@ import (
 
 // Тестовые файлы.
 const (
-	testSearchJSON  = "../../../../../../testdata/audio/online/musicbrainz/search.json"
-	testReleaseJSON = "../../../../../../testdata/audio/online/musicbrainz/release.json"
+	testSearchJSON  = "testdata/search.json"
+	testReleaseJSON = "testdata/release.json"
 )
 
 func TestSearchResponseParsing(t *testing.T) {

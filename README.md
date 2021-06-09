@@ -29,8 +29,8 @@
 	    flag.Parse()
 
 	    log.Info(
-		    fmt.Sprintf("%s %s starting in %s mode..",
-			    musicbrainz.ServiceName, musicbrainz.ServiceVersion, srv.RunModeName(*idle)))
+		    fmt.Sprintf("%s starting in %s mode..",
+			    musicbrainz.ServiceName, srv.RunModeName(*idle)))
 
 	    cl, err := musicbrainz.NewMusicbrainzClient(*connstr)
 	    srv.FailOnError(err, "Failed to create Musicbrainz client")
