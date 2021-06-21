@@ -3,7 +3,7 @@
 Микросервис-клиент [Musicbrainz](https://musicbrainz.org/doc/MusicBrainz_API).
 Обмен сообщениями реализован с использованием [RabbitMQ](https://www.rabbitmq.com).
 
-## Пример использования:
+## Пример запуска микросервиса:
 
     package main
 
@@ -37,3 +37,7 @@
 
 	    cl.Dispatch(cl)
     }
+
+## Пример клиента Python (тест)
+
+См. файл [musicbrainz.py](https://github.com/ytsiuryn/ds-musicbrainz/blob/main/musicbrainz.py)
