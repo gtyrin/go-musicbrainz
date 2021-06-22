@@ -64,9 +64,9 @@ type Musicbrainz struct {
 }
 
 // NewMusicbrainzClient create a new Musicbrainz client.
-func NewMusicbrainzClient(connstr string) (*Musicbrainz, error) {
+func NewMusicbrainzClient(connstr, optFile string) (*Musicbrainz, error) {
 	conf := config{}
-	srv.ReadConfig("musicbrainz.yml", &conf)
+	srv.ReadConfig(optFile, &conf)
 
 	log.SetLevel(srv.LogLevel(conf.Product))
 
