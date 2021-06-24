@@ -4,7 +4,7 @@
 Обмен сообщениями реализован с использованием [RabbitMQ](https://www.rabbitmq.com).
 
 ## Пример запуска микросервиса:
-
+```go
     package main
 
     import (
@@ -24,8 +24,7 @@
 		    "Message server connection string")
 	    flag.Parse()
 
-	    log.Info(
-		    fmt.Sprintf("%s starting..", musicbrainz.ServiceName))
+	    log.Info(fmt.Sprintf("%s starting..", musicbrainz.ServiceName))
 
 	    cl, err := musicbrainz.NewMusicbrainzClient(*connstr)
 	    srv.FailOnError(err, "Failed to create Musicbrainz client")
@@ -37,6 +36,7 @@
 
 	    cl.Dispatch(cl)
     }
+```
 
 ## Пример клиента Python (тест)
 
