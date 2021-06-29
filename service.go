@@ -146,7 +146,7 @@ func (m *Musicbrainz) search(delivery *amqp.Delivery) {
 		}
 	}
 	for _, suggestion := range suggestions {
-		suggestion.Entity.(*md.Release).Optimize()
+		suggestion.Optimize()
 	}
 	// отправка ответа
 	suggestionsJSON, err := json.Marshal(suggestions)
@@ -168,7 +168,7 @@ func (m *Musicbrainz) searchReleaseByID(request *srv.Request) ([]*md.Suggestion,
 	}
 	return []*md.Suggestion{
 			{
-				Entity:           r,
+				Release:          r,
 				ServiceName:      ServiceName,
 				OnlineSuggeston:  true,
 				SourceSimilarity: 1.,
@@ -195,7 +195,7 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(request *srv.Request) ([]*md
 			suggestions = append(
 				suggestions,
 				&md.Suggestion{
-					Entity:           r,
+					Release:          r,
 					ServiceName:      ServiceName,
 					OnlineSuggeston:  true,
 					SourceSimilarity: score,
@@ -206,12 +206,12 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(request *srv.Request) ([]*md
 	log.WithField("results", len(suggestions)).Debug("Preliminary search")
 	// окончательные предложения
 	for i := len(suggestions) - 1; i >= 0; i-- {
-		r := suggestions[i].Entity.(*md.Release)
+		r := suggestions[i].Release
 		if err := m.releaseByID(r.IDs[ServiceName], r); err != nil {
 			return nil, err
 		}
 		if score = release.Compare(r); score > MinSearchFullResult {
-			suggestions[i].Entity = r
+			suggestions[i].Release = r
 			suggestions[i].SourceSimilarity = score
 		} else {
 			suggestions = append(suggestions[:i], suggestions[i+1:]...)
@@ -247,12 +247,14 @@ func (m *Musicbrainz) pictures(entityType, id string) ([]*md.PictureInAudio, err
 
 func searchURL(release *md.Release) string {
 	p := []string{}
-	if performers := release.Actors.Filter(md.IsPerformer); len(*performers) > 0 {
-		firstPerformer := performers.ActorByIndex(0)
-		if arid, ok := firstPerformer.IDs[ServiceName]; ok { // MUSICBRAINZ_ALBUMARTISTID
-			p = append(p, queryParam("arid", arid))
-		} else {
-			p = append(p, queryParam("artist", (*performers)[0].Name))
+	if performers := release.ActorRoles.Filter(md.IsPerformer); len(performers) > 0 {
+		firstPerformer := performers.First()
+		if firstPerformer != "" {
+			if arid, ok := release.Actors[firstPerformer][ServiceName]; ok { // MUSICBRAINZ_ALBUMARTISTID
+				p = append(p, queryParam("arid", arid))
+			} else {
+				p = append(p, queryParam("artist", string(firstPerformer)))
+			}
 		}
 	}
 	if release.Title != "" {

@@ -224,7 +224,7 @@ func (ri *releaseInfo) Release(r *md.Release) {
 		r.TotalDiscs++
 	}
 	for _, ac := range ri.ArtistCredit {
-		ac.AddPerformer(r.Actors)
+		ac.AddPerformer(r)
 	}
 	r.ReleaseStatus.Decode(ri.Status)
 	// ri.Packaging
@@ -260,7 +260,7 @@ func (si releaseSearchItem) Release() *md.Release {
 		r.Publishing = append(r.Publishing, li.Publishing())
 	}
 	for _, ac := range si.ArtistCredit {
-		ac.AddPerformer(r.Actors)
+		ac.AddPerformer(r)
 	}
 	r.ReleaseStatus.Decode(si.Status)
 	return r
@@ -294,11 +294,10 @@ func (li labelInfo) Publishing() *md.Publishing {
 	return ret
 }
 
-func (ac artistCredit) AddPerformer(actors *md.Actors) {
+func (ac artistCredit) AddPerformer(r *md.Release) {
 	if ac.Name != "" {
-		actor := actors.AddActorEntry(ac.Name)
-		actor.IDs[ServiceName] = ac.Artist.ID
-		actors.AddRole(ac.Name, "performer")
+		r.Actors.Add(ac.Name, ServiceName, ac.Artist.ID)
+		r.ActorRoles.Add(ac.Name, "performer")
 	}
 }
 
@@ -334,25 +333,22 @@ func (rel *relation) AddActor(track *md.Track) {
 			roles = []string{rel.Type}
 		}
 		for _, role := range roles {
-			actors := ActorsByRole(track, role)
-			actor := actors.AddRole(rel.Artist.Name, role)
-			actor.IDs[ServiceName] = rel.Artist.ID
+			ActorsByRole(track, role).Add(rel.Artist.Name, role)
+			track.Actors.Add(rel.Artist.Name, ServiceName, rel.Artist.ID)
 		}
 	}
 }
 
 // ActorsByRole определяет коллекцию для размещения описания по наименованию роли.
 // Это может быть коллекция для описания акторов произведения, записи или релиза.
-func ActorsByRole(track *md.Track, role string) *md.Actors {
-	var ret *md.Actors
+func ActorsByRole(track *md.Track, role string) *md.ActorRoles {
 	switch role {
 	case "design", "illustration", "design/illustration", "photography":
-		ret = track.Actors
+		return &track.ActorRoles
 	// TODO: проверить!
 	case "composer", "lyricist", "writer":
-		ret = track.Composition.Actors
+		return &track.Composition.ActorRoles
 	default:
-		ret = track.Record.Actors
+		return &track.Record.ActorRoles
 	}
-	return ret
 }
