@@ -81,7 +81,7 @@ class OnlineDBClient(RPCClient):
 
     def search_by_release(self, release_data):
         return self.call(
-            {"cmd": "search", "params": {"release": json.dumps(release_data)}})
+            {"cmd": "search", "params": {"release": release_data}})
 
 
 class MusicbrainzClient(OnlineDBClient):

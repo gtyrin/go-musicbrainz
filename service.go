@@ -57,6 +57,11 @@ type config struct {
 	Product bool `yaml:"product"`
 }
 
+// Request расширяет базовые функции общей микросерверной структуры запроса.
+type Request struct {
+	srv.Request
+}
+
 // Musicbrainz describes data of Musicbrainz client.
 type Musicbrainz struct {
 	*srv.PollingService
@@ -124,7 +129,7 @@ func (m *Musicbrainz) search(delivery *amqp.Delivery) {
 		return
 	}
 	// прием входного запроса
-	var request srv.Request
+	var request Request
 	err := json.Unmarshal(delivery.Body, &request)
 	if err != nil {
 		m.ErrorResult(delivery, err, "Request")
@@ -160,8 +165,11 @@ func (m *Musicbrainz) search(delivery *amqp.Delivery) {
 	m.Answer(delivery, suggestionsJSON)
 }
 
-func (m *Musicbrainz) searchReleaseByID(request *srv.Request) ([]*md.Suggestion, error) {
-	id := request.Params["release_id"]
+func (m *Musicbrainz) searchReleaseByID(request *Request) ([]*md.Suggestion, error) {
+	id, ok := request.Params["release_id"].(string)
+	if !ok {
+		return nil, errors.New("Request param ID not found")
+	}
 	r := md.NewRelease()
 	if err := m.releaseByID(id, r); err != nil {
 		return nil, err
@@ -176,12 +184,12 @@ func (m *Musicbrainz) searchReleaseByID(request *srv.Request) ([]*md.Suggestion,
 		nil
 }
 
-func (m *Musicbrainz) searchReleaseByIncompleteData(request *srv.Request) ([]*md.Suggestion, error) {
+func (m *Musicbrainz) searchReleaseByIncompleteData(request *Request) ([]*md.Suggestion, error) {
 	var suggestions []*md.Suggestion
 	// params
-	release, err := request.ParseRelease()
-	if err != nil {
-		return nil, err
+	release, ok := request.Params["release"].(*md.Release)
+	if !ok {
+		return nil, errors.New("Album release description is absent")
 	}
 	// musicbrainz release search...
 	var preResult releaseSearchResult
