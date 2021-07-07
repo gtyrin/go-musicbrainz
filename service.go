@@ -6,21 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os"
+	"os/signal"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 
 	md "github.com/ytsiuryn/ds-audiomd"
-	srv "github.com/ytsiuryn/ds-service"
+	srv "github.com/ytsiuryn/ds-microservice"
 )
 
 // Описание сервиса
-const (
-	ServiceSubsystem   = "audio"
-	ServiceName        = "musicbrainz"
-	ServiceDescription = "Musicbrainz service client"
-)
+const ServiceName = "musicbrainz"
 
 // Suggestion constants
 const (
@@ -47,52 +48,63 @@ var (
 	ErrAlbumPictureNoAccess = errors.New("invalid character '<' looking for beginning of value")
 )
 
-type config struct {
-	Auth struct {
-		App    string `yaml:"app"`
-		Key    string `yaml:"key"`
-		Secret string `yaml:"secret"`
-		// PersonalToken string `yaml:"personal_token"`
-	}
-	Product bool `yaml:"product"`
-}
-
-// Request расширяет базовые функции общей микросерверной структуры запроса.
-type Request struct {
-	srv.Request
-}
-
 // Musicbrainz describes data of Musicbrainz client.
 type Musicbrainz struct {
-	*srv.PollingService
-	conf *config
+	*srv.Service
+	headers map[string]string
+	poller  *srv.WebPoller
 }
 
 // NewMusicbrainzClient create a new Musicbrainz client.
-func NewMusicbrainzClient(connstr, optFile string) (*Musicbrainz, error) {
-	conf := config{}
-	srv.ReadConfig(optFile, &conf)
-
-	log.SetLevel(srv.LogLevel(conf.Product))
-
-	cl := &Musicbrainz{}
-	cl.conf = &conf
-	cl.PollingService = srv.NewPollingService(
-		map[string]string{
-			"User-Agent": cl.conf.Auth.App,
+func NewMusicbrainzClient(app, key, secret string) *Musicbrainz {
+	m := &Musicbrainz{
+		Service: srv.NewService(ServiceName),
+		headers: map[string]string{
+			"User-Agent": app,
 			// "Authorization": "Musicbrainz token=" + cl.conf.Auth.PersonalToken,
-		})
-	cl.ConnectToMessageBroker(connstr, ServiceName)
+		},
+		poller: srv.NewWebPoller(2500 * time.Millisecond)}
 
-	return cl, nil
+	m.SetVersionInfo(
+		srv.ServiceInfo{
+			Subsystem:   "audio",
+			Name:        ServiceName,
+			Description: "Discogs client"})
+
+	return m
 }
 
 // TestPollingFrequency выполняет определение частоты опроса сервера на примере
 // тестового запроса. Периодичность расчитывается в наносекундах.
 // TODO: реализовать тестовый запрос.
-func (m *Musicbrainz) TestPollingFrequency() error {
-	m.SetPollingFrequency(int64(60 * 1000_000_000 / int64(60)))
-	return nil
+func (m *Musicbrainz) TestPollingFrequency() {
+}
+
+// Start запускает Web Poller и цикл обработки взодящих запросов.
+// Контролирует сигнал завершения цикла и последующего освобождения ресурсов микросервиса.
+func (m *Musicbrainz) Start(msgs <-chan amqp.Delivery) {
+	m.poller.Start()
+	go m.TestPollingFrequency()
+
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		for delivery := range msgs {
+			var req AudioOnlineRequest
+			if err := json.Unmarshal(delivery.Body, &req); err != nil {
+				m.AnswerWithError(&delivery, err, "Message dispatcher")
+				continue
+			}
+			m.logRequest(&req)
+			m.RunCmd(&req, &delivery)
+		}
+	}()
+
+	m.Log.Info("Awaiting RPC requests")
+	<-c
+
+	m.Cleanup()
 }
 
 // Cleanup ..
@@ -100,55 +112,51 @@ func (m *Musicbrainz) Cleanup() {
 	m.Service.Cleanup()
 }
 
-// RunCmdByName execute a general command and return the result to the client.
-func (m *Musicbrainz) RunCmdByName(cmd string, delivery *amqp.Delivery) {
-	switch cmd {
-	case "search":
-		go m.search(delivery)
-	case "info":
-		version := srv.Version{
-			Subsystem:   ServiceSubsystem,
-			Name:        ServiceName,
-			Description: ServiceDescription,
+// Отображение сведений о выполняемом запросе.
+func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
+	if req.Release != nil {
+		if _, ok := req.Release.IDs[ServiceName]; ok {
+			m.Log.WithField("args", req.Release.IDs[ServiceName]).Debug(req.Cmd + "()")
+		} else { // TODO: может стоит офомить метод String() для md.Release?
+			var args []string
+			if actor := string(req.Release.ActorRoles.Filter(md.IsPerformer).First()); actor != "" {
+				args = append(args, actor)
+			}
+			if req.Release.Title != "" {
+				args = append(args, req.Release.Title)
+			}
+			if req.Release.Year != 0 {
+				args = append(args, strconv.Itoa(req.Release.Year))
+			}
+			m.Log.WithField("args", strings.Join(args, "-")).Debug(req.Cmd + "()")
 		}
-		go m.Service.Info(delivery, &version)
-	default:
-		m.Service.RunCommonCmd(cmd, delivery)
+	} else {
+		m.Log.Debug(req.Cmd + "()")
 	}
 }
 
-func (m *Musicbrainz) search(delivery *amqp.Delivery) {
-	if m.Idle {
-		res := []*md.Suggestion{}
-		suggestionsJSON, err := json.Marshal(res)
-		if err != nil {
-			m.ErrorResult(delivery, err, "Response")
-			return
-		}
-		m.Answer(delivery, suggestionsJSON)
-		return
+// RunCmd вызывает командам  запроса методы сервиса и возвращает результат клиенту.
+func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
+	switch req.Cmd {
+	case "release":
+		go m.release(req, delivery)
+	default:
+		m.Service.RunCmd(req.Cmd, delivery)
 	}
-	// прием входного запроса
-	var request Request
-	err := json.Unmarshal(delivery.Body, &request)
-	if err != nil {
-		m.ErrorResult(delivery, err, "Request")
-		return
-	}
+}
+
+func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) {
 	// разбор параметров входного запроса
+	var err error
 	var suggestions []*md.Suggestion
-	if _, ok := request.Params["release_id"]; ok {
-		suggestions, err = m.searchReleaseByID(&request)
-		if err != nil {
-			m.ErrorResult(delivery, err, "Release by ID")
-			return
-		}
-	} else if _, ok := request.Params["release"]; ok {
-		suggestions, err = m.searchReleaseByIncompleteData(&request)
-		if err != nil {
-			m.ErrorResult(delivery, err, "Release by incomplete data")
-			return
-		}
+	if _, ok := request.Release.IDs[ServiceName]; ok {
+		suggestions, err = m.searchReleaseByID(request.Release.IDs[ServiceName])
+	} else {
+		suggestions, err = m.searchReleaseByIncompleteData(request.Release)
+	}
+	if err != nil {
+		m.AnswerWithError(delivery, err, "Getting release data")
+		return
 	}
 	for _, suggestion := range suggestions {
 		suggestion.Optimize()
@@ -156,20 +164,14 @@ func (m *Musicbrainz) search(delivery *amqp.Delivery) {
 	// отправка ответа
 	suggestionsJSON, err := json.Marshal(suggestions)
 	if err != nil {
-		m.ErrorResult(delivery, err, "Response")
-		return
+		m.AnswerWithError(delivery, err, "Response")
+	} else {
+		m.Log.Debug(string(suggestionsJSON))
+		m.Answer(delivery, suggestionsJSON)
 	}
-	if !m.conf.Product {
-		log.Println(string(suggestionsJSON))
-	}
-	m.Answer(delivery, suggestionsJSON)
 }
 
-func (m *Musicbrainz) searchReleaseByID(request *Request) ([]*md.Suggestion, error) {
-	id, ok := request.Params["release_id"].(string)
-	if !ok {
-		return nil, errors.New("Request param ID not found")
-	}
+func (m *Musicbrainz) searchReleaseByID(id string) ([]*md.Suggestion, error) {
 	r := md.NewRelease()
 	if err := m.releaseByID(id, r); err != nil {
 		return nil, err
@@ -184,16 +186,11 @@ func (m *Musicbrainz) searchReleaseByID(request *Request) ([]*md.Suggestion, err
 		nil
 }
 
-func (m *Musicbrainz) searchReleaseByIncompleteData(request *Request) ([]*md.Suggestion, error) {
+func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.Suggestion, error) {
 	var suggestions []*md.Suggestion
-	// params
-	release, ok := request.Params["release"].(*md.Release)
-	if !ok {
-		return nil, errors.New("Album release description is absent")
-	}
 	// musicbrainz release search...
 	var preResult releaseSearchResult
-	if err := m.LoadAndDecode(searchURL(release), &preResult); err != nil {
+	if err := m.poller.Decode(searchURL(release), m.headers, &preResult); err != nil {
 		return nil, err
 	}
 	var score float64
@@ -233,7 +230,8 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(request *Request) ([]*md.Sug
 func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
 	// release request...
 	var releaseResp releaseInfo
-	if err := m.LoadAndDecode(BaseEntityURL+"release/"+id+releaseParams, &releaseResp); err != nil {
+	if err := m.poller.Decode(
+		BaseEntityURL+"release/"+id+releaseParams, m.headers, &releaseResp); err != nil {
 		return err
 	}
 	releaseResp.Release(release)
@@ -243,8 +241,7 @@ func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
 func (m *Musicbrainz) pictures(entityType, id string) ([]*md.PictureInAudio, error) {
 	var ret []*md.PictureInAudio
 	var ci coverInfo
-	err := m.LoadAndDecode(coverURL(entityType, id), &ci)
-	if err != nil {
+	if err := m.poller.Decode(coverURL(entityType, id), m.headers, &ci); err != nil {
 		return nil, err
 	}
 	if cover := ci.Cover(); cover != nil {
