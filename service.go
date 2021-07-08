@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
 
 	md "github.com/ytsiuryn/ds-audiomd"
@@ -199,7 +198,7 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.
 		}
 	}
 	suggestions = md.BestNResults(suggestions, MaxPreSuggestions)
-	log.WithField("results", len(suggestions)).Debug("Preliminary search")
+	m.Log.WithField("results", len(suggestions)).Debug("Preliminary search")
 	// окончательные предложения
 	for i := len(suggestions) - 1; i >= 0; i-- {
 		r := suggestions[i].Release
@@ -207,14 +206,13 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.
 			return nil, err
 		}
 		if score = release.Compare(r); score > MinSearchFullResult {
-			suggestions[i].Release = r
 			suggestions[i].SourceSimilarity = score
 		} else {
 			suggestions = append(suggestions[:i], suggestions[i+1:]...)
 		}
 	}
 	suggestions = md.BestNResults(suggestions, MaxSuggestions)
-	log.WithField("results", len(suggestions)).Debug("Suggestions")
+	m.Log.WithField("results", len(suggestions)).Debug("Suggestions")
 	return suggestions, nil
 }
 
