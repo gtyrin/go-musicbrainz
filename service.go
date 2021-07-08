@@ -55,8 +55,8 @@ type Musicbrainz struct {
 	poller  *srv.WebPoller
 }
 
-// NewMusicbrainzClient create a new Musicbrainz client.
-func NewMusicbrainzClient(app, key, secret string) *Musicbrainz {
+// New create a new Musicbrainz client.
+func New(app, key, secret string) *Musicbrainz {
 	m := &Musicbrainz{
 		Service: srv.NewService(ServiceName),
 		headers: map[string]string{
@@ -74,17 +74,17 @@ func NewMusicbrainzClient(app, key, secret string) *Musicbrainz {
 	return m
 }
 
-// TestPollingFrequency выполняет определение частоты опроса сервера на примере
+// TestPollingInterval выполняет определение частоты опроса сервера на примере
 // тестового запроса. Периодичность расчитывается в наносекундах.
 // TODO: реализовать тестовый запрос.
-func (m *Musicbrainz) TestPollingFrequency() {
+func (m *Musicbrainz) TestPollingInterval() {
 }
 
 // Start запускает Web Poller и цикл обработки взодящих запросов.
 // Контролирует сигнал завершения цикла и последующего освобождения ресурсов микросервиса.
 func (m *Musicbrainz) Start(msgs <-chan amqp.Delivery) {
 	m.poller.Start()
-	go m.TestPollingFrequency()
+	go m.TestPollingInterval()
 
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -104,11 +104,10 @@ func (m *Musicbrainz) Start(msgs <-chan amqp.Delivery) {
 	m.Log.Info("Awaiting RPC requests")
 	<-c
 
-	m.Cleanup()
+	m.cleanup()
 }
 
-// Cleanup ..
-func (m *Musicbrainz) Cleanup() {
+func (m *Musicbrainz) cleanup() {
 	m.Service.Cleanup()
 }
 

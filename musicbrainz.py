@@ -4,23 +4,23 @@ import uuid
 import fastunit
 
 
+release_musicbrainz_id_data = {
+    "ids": {
+        "musicbrainz": "956fbc58-362d-43b8-b880-3779e0508559"
+    }
+}
+
 incomplete_data = {
     "year": 1977,
     "publishing": [
         {
             "name": "Harvest",
-            # "catno": "3C 064-05249"
             "catno": "SHVL 804"
         }
     ],
     "title": "The Dark Side Of The Moon",
-    "recording": {
-        "actors": [
-            {
-                "name": "Pink Floyd",
-                "roles": ["performer"]
-            }
-        ]
+    "actor_roles": {
+        "Pink Floyd": ["performer"]
     }
 }
 
@@ -76,12 +76,9 @@ class OnlineDBClient(RPCClient):
     def __init__(self, queue_name):
         super().__init__(queue_name)
 
-    def search_by_release_id(self, id):
-        return self.call({"cmd": "search", "params": {"release_id": id}})
-
-    def search_by_release(self, release_data):
+    def search_by_release_data(self, release_data):
         return self.call(
-            {"cmd": "search", "params": {"release": release_data}})
+            {"cmd": "release", "release": release_data})
 
 
 class MusicbrainzClient(OnlineDBClient):
@@ -105,17 +102,15 @@ class TestMusicbrainz(fastunit.TestCase):
 
     def test_release_by_id(self):
         resp = json.loads(
-            self.cl.search_by_release_id(
-                "956fbc58-362d-43b8-b880-3779e0508559")
-        )
+            self.cl.call({"cmd": "release", "release": release_musicbrainz_id_data}))
         self.assertEqual(
-            resp[0]["entity"]["title"].lower(),
+            resp[0]["release"]["title"].lower(),
             "the dark side of the moon")
 
     def test_search_by_release(self):
-        resp = json.loads(self.cl.search_by_release(incomplete_data))
+        resp = json.loads(self.cl.search_by_release_data(incomplete_data))
         self.assertEqual(
-            resp[0]["entity"]["title"].lower(),
+            resp[0]["release"]["title"].lower(),
             "the dark side of the moon")
 
 

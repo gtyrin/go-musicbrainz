@@ -38,23 +38,34 @@
     )
 
     func main() {
-	    connstr := flag.String(
-		    "msg-server",
-		    "amqp://guest:guest@localhost:5672/",
-		    "Message server connection string")
-	    flag.Parse()
+		connstr := flag.String(
+			"msg-server",
+			"amqp://guest:guest@localhost:5672/",
+			"Message server connection string")
 
-	    log.Info(fmt.Sprintf("%s starting..", musicbrainz.ServiceName))
+		product := flag.Bool(
+			"product",
+			false,
+			"product-режим запуска сервиса")
 
-	    cl, err := musicbrainz.NewMusicbrainzClient(*connstr)
-	    srv.FailOnError(err, "Failed to create Musicbrainz client")
+		flag.Parse()
 
-	    err = cl.TestPollingFrequency()
-	    srv.FailOnError(err, "Failed to test polling frequency")
+		log.Info("Start ", musicbrainz.ServiceName)
 
-	    defer cl.Close()
+		cl := musicbrainz.NewMusicbrainzClient(
+			os.Getenv("MUSICBRAINZ_APP"),
+			os.Getenv("MUSICBRAINZ_KEY"),
+			os.Getenv("MUSICBRAINZ_SECRET"))
 
-	    cl.Dispatch(cl)
+		msgs := cl.ConnectToMessageBroker(*connstr)
+
+		if *product {
+			cl.Log.SetLevel(log.InfoLevel)
+		} else {
+			cl.Log.SetLevel(log.DebugLevel)
+		}
+
+		cl.Start(msgs)
     }
 ```
 

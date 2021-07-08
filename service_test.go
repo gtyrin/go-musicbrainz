@@ -45,7 +45,7 @@ func startTestService(ctx context.Context) {
 	mut.Lock()
 	defer mut.Unlock()
 	if testService == nil {
-		testService = NewMusicbrainzClient(
+		testService = New(
 			os.Getenv("MUSICBRAINZ_APP"),
 			os.Getenv("MUSICBRAINZ_KEY"),
 			os.Getenv("MUSICBRAINZ_SECRET"))
