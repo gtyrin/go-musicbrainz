@@ -57,21 +57,13 @@ type Musicbrainz struct {
 
 // New create a new Musicbrainz client.
 func New(app, key, secret string) *Musicbrainz {
-	m := &Musicbrainz{
+	return &Musicbrainz{
 		Service: srv.NewService(ServiceName),
 		headers: map[string]string{
 			"User-Agent": app,
 			// "Authorization": "Musicbrainz token=" + cl.conf.Auth.PersonalToken,
 		},
 		poller: srv.NewWebPoller(2500 * time.Millisecond)}
-
-	m.SetVersionInfo(
-		srv.ServiceInfo{
-			Subsystem:   "audio",
-			Name:        ServiceName,
-			Description: "Discogs client"})
-
-	return m
 }
 
 // TestPollingInterval выполняет определение частоты опроса сервера на примере
