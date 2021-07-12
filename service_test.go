@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
+
 	md "github.com/ytsiuryn/ds-audiomd"
 )
 
@@ -50,7 +52,7 @@ func startTestService(ctx context.Context) {
 			os.Getenv("MUSICBRAINZ_KEY"),
 			os.Getenv("MUSICBRAINZ_SECRET"))
 		msgs := testService.ConnectToMessageBroker("amqp://guest:guest@localhost:5672/")
-		// defer test.Cleanup()
+		testService.Log.SetLevel(log.DebugLevel)
 		go testService.Start(msgs)
 	}
 }

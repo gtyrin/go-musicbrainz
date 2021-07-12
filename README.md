@@ -9,7 +9,6 @@
 |-------|----------------------------------------------------|
 |release|поиск по неполным метаданным или ID в БД Musicbrainz|
 |ping   |проверка жизнеспособности микросервиса              |
-|info   |информация о микросервисе                           |
 
 *Пример использования команд приведен в тестовом клиенте в [musicbrainz.py](https://github.com/ytsiuryn/ds-musicbrainz/blob/main/musicbrainz.py)*.
 
@@ -52,7 +51,7 @@
 
 		log.Info("Start ", musicbrainz.ServiceName)
 
-		cl := musicbrainz.NewMusicbrainzClient(
+		cl := musicbrainz.New(
 			os.Getenv("MUSICBRAINZ_APP"),
 			os.Getenv("MUSICBRAINZ_KEY"),
 			os.Getenv("MUSICBRAINZ_SECRET"))

@@ -3,7 +3,6 @@ package musicbrainz
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -32,19 +31,14 @@ const (
 
 // Client constants
 const (
-	BaseEntityURL      = "https://musicbrainz.org/ws/2/"
-	imgURL             = "https://coverartarchive.org"
-	releaseParams      = "?inc=annotation+release-groups+artist-credits+recordings+recording-level-rels+artist-rels+genres+labels&fmt=json"
-	releaseGroupParams = "?inc=annotation&fmt=json"
+	BaseURL       = "https://musicbrainz.org/ws/2/"
+	ImgURL        = "https://coverartarchive.org"
+	releaseParams = "?inc=annotation+release-groups+artist-credits+recordings+recording-level-rels+artist-rels+genres+labels&fmt=json"
+	// releaseGroupParams = "?inc=annotation&fmt=json"
 	// debugURL = "https://musicbrainz.org/ws/2/release/%s?inc=artist-credits+recordings+recording-level-rels+artist-rels+genres+labels&fmt=json"
 	// prodURL        = "https://musicbrainz.org/release/%s"
 	// artistDebugURL = "https://musicbrainz.org/ws/2/artist/%s?inc=releases&fmt=json"
 	// artistProdURL  = "https://musicbrainz.org/artist/%s"
-)
-
-// Известные ошибки.
-var (
-	ErrAlbumPictureNoAccess = errors.New("invalid character '<' looking for beginning of value")
 )
 
 // Musicbrainz describes data of Musicbrainz client.
@@ -69,6 +63,7 @@ func New(app, key, secret string) *Musicbrainz {
 // тестового запроса. Периодичность расчитывается в наносекундах.
 // TODO: реализовать тестовый запрос.
 func (m *Musicbrainz) TestPollingInterval() {
+	// m.Log.Info("Polling interval: ", m.poller.PollingInterval())
 }
 
 // Start запускает Web Poller и цикл обработки взодящих запросов.
@@ -106,7 +101,7 @@ func (m *Musicbrainz) cleanup() {
 func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 	if req.Release != nil {
 		if _, ok := req.Release.IDs[ServiceName]; ok {
-			m.Log.WithField("args", req.Release.IDs[ServiceName]).Debug(req.Cmd + "()")
+			m.Log.WithField("args", req.Release.IDs[ServiceName]).Info(req.Cmd + "()")
 		} else { // TODO: может стоит офомить метод String() для md.Release?
 			var args []string
 			if actor := string(req.Release.ActorRoles.Filter(md.IsPerformer).First()); actor != "" {
@@ -118,10 +113,10 @@ func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 			if req.Release.Year != 0 {
 				args = append(args, strconv.Itoa(req.Release.Year))
 			}
-			m.Log.WithField("args", strings.Join(args, "-")).Debug(req.Cmd + "()")
+			m.Log.WithField("args", strings.Join(args, "-")).Info(req.Cmd + "()")
 		}
 	} else {
-		m.Log.Debug(req.Cmd + "()")
+		m.Log.Info(req.Cmd + "()")
 	}
 }
 
@@ -220,7 +215,7 @@ func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
 	// release request...
 	var releaseResp releaseInfo
 	if err := m.poller.Decode(
-		BaseEntityURL+"release/"+id+releaseParams, m.headers, &releaseResp); err != nil {
+		BaseURL+"release/"+id+releaseParams, m.headers, &releaseResp); err != nil {
 		return err
 	}
 	releaseResp.Release(release)
@@ -265,7 +260,7 @@ func searchURL(release *md.Release) string {
 	// if release.Year != 0 {
 	// 	p = append(p, queryParam("date", strconv.Itoa(int(release.Year))))
 	// }
-	buffer := bytes.NewBufferString(BaseEntityURL)
+	buffer := bytes.NewBufferString(BaseURL)
 	buffer.WriteString("release?query=")
 	buffer.WriteString(url.PathEscape(strings.Join(p, " AND ")))
 	buffer.WriteString("&fmt=json")
@@ -273,7 +268,7 @@ func searchURL(release *md.Release) string {
 }
 
 func coverURL(entity, releaseID string) string {
-	return imgURL + "/" + entity + "/" + releaseID
+	return ImgURL + "/" + entity + "/" + releaseID
 }
 
 func queryParam(k, v string) string {
