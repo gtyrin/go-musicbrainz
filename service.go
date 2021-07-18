@@ -167,7 +167,6 @@ func (m *Musicbrainz) searchReleaseByID(id string) ([]*md.Suggestion, error) {
 			{
 				Release:          r,
 				ServiceName:      ServiceName,
-				OnlineSuggeston:  true,
 				SourceSimilarity: 1.,
 			}},
 		nil
@@ -189,7 +188,6 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.
 				&md.Suggestion{
 					Release:          r,
 					ServiceName:      ServiceName,
-					OnlineSuggeston:  true,
 					SourceSimilarity: score,
 				})
 		}
