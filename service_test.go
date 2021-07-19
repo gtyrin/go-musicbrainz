@@ -11,6 +11,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	md "github.com/ytsiuryn/ds-audiomd"
 	srv "github.com/ytsiuryn/ds-microservice"
@@ -51,14 +52,17 @@ func TestBaseServiceCommands(t *testing.T) {
 	cl := srv.NewRPCClient()
 	defer cl.Close()
 
-	correlationID, data, _ := srv.CreateCmdRequest("ping")
+	correlationID, data, err := srv.CreateCmdRequest("ping")
+	require.NoError(t, err)
 	cl.Request(ServiceName, correlationID, data)
 	respData := cl.Result(correlationID)
 	assert.Len(t, respData, 0)
 
-	correlationID, data, _ = srv.CreateCmdRequest("x")
+	correlationID, data, err = srv.CreateCmdRequest("x")
+	require.NoError(t, err)
 	cl.Request(ServiceName, correlationID, data)
-	vInfo, _ := srv.ParseErrorAnswer(cl.Result(correlationID))
+	vInfo, err := srv.ParseErrorAnswer(cl.Result(correlationID))
+	require.NoError(t, err)
 	// {"error": "Unknown command: x", "context": "Message dispatcher"}
 	assert.Equal(t, vInfo.Error, "Unknown command: x")
 }
@@ -78,10 +82,12 @@ func TestSearchRelease(t *testing.T) {
 	r.ActorRoles.Add("Pink Floyd", "performer")
 	r.Publishing = append(r.Publishing, &md.Publishing{Name: "Harvest", Catno: "SHVL 804"})
 
-	correlationID, data, _ := CreateReleaseRequest(r)
+	correlationID, data, err := CreateReleaseRequest(r)
+	require.NoError(t, err)
 	cl.Request(ServiceName, correlationID, data)
 
-	suggestions, _ := ParseReleaseAnswer(cl.Result(correlationID))
+	suggestions, err := ParseReleaseAnswer(cl.Result(correlationID))
+	require.NoError(t, err)
 
 	assert.NotEmpty(t, suggestions)
 	assert.Equal(t, strings.ToLower(suggestions[0].Release.Title), "the dark side of the moon")

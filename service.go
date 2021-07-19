@@ -135,21 +135,19 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) {
 	// разбор параметров входного запроса
 	var err error
-	var suggestions []*md.Suggestion
+	var set *md.SuggestionSet
 	if _, ok := request.Release.IDs[ServiceName]; ok {
-		suggestions, err = m.searchReleaseByID(request.Release.IDs[ServiceName])
+		set, err = m.searchReleaseByID(request.Release.IDs[ServiceName])
 	} else {
-		suggestions, err = m.searchReleaseByIncompleteData(request.Release)
+		set, err = m.searchReleaseByIncompleteData(request.Release)
 	}
 	if err != nil {
 		m.AnswerWithError(delivery, err, "Getting release data")
 		return
 	}
-	for _, suggestion := range suggestions {
-		suggestion.Optimize()
-	}
+	set.Optimize()
 	// отправка ответа
-	suggestionsJSON, err := json.Marshal(suggestions)
+	suggestionsJSON, err := json.Marshal(set)
 	if err != nil {
 		m.AnswerWithError(delivery, err, "Response")
 	} else {
@@ -158,21 +156,23 @@ func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delive
 	}
 }
 
-func (m *Musicbrainz) searchReleaseByID(id string) ([]*md.Suggestion, error) {
+func (m *Musicbrainz) searchReleaseByID(id string) (*md.SuggestionSet, error) {
 	r := md.NewRelease()
 	if err := m.releaseByID(id, r); err != nil {
 		return nil, err
 	}
-	return []*md.Suggestion{
-			{
-				Release:          r,
-				ServiceName:      ServiceName,
-				SourceSimilarity: 1.,
-			}},
-		nil
+	set := md.NewSuggestionSet()
+	set.Suggestions = []*md.Suggestion{
+		{
+			Release:          r,
+			ServiceName:      ServiceName,
+			SourceSimilarity: 1.,
+		}}
+	return set, nil
 }
 
-func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.Suggestion, error) {
+func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) (
+	*md.SuggestionSet, error) {
 	var suggestions []*md.Suggestion
 	// musicbrainz release search...
 	var preResult releaseSearchResult
@@ -208,7 +208,11 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) ([]*md.
 	}
 	suggestions = md.BestNResults(suggestions, MaxSuggestions)
 	m.Log.WithField("results", len(suggestions)).Debug("Suggestions")
-	return suggestions, nil
+
+	set := md.NewSuggestionSet()
+	set.Suggestions = suggestions
+
+	return set, nil
 }
 
 func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
