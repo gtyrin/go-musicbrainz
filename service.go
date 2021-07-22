@@ -54,7 +54,7 @@ func New(app, key, secret string) *Musicbrainz {
 		Service: srv.NewService(ServiceName),
 		headers: map[string]string{
 			"User-Agent": app,
-			// "Authorization": "Musicbrainz token=" + cl.conf.Auth.PersonalToken,
+			// "Authorization": "Musicbrainz token=" + key,
 		},
 		poller: srv.NewWebPoller(2500 * time.Millisecond)}
 	ret.poller.Log = ret.Log
@@ -130,7 +130,7 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 
 	switch req.Cmd {
 	case "release":
-		go m.release(req, delivery)
+		data, err = m.release(req, delivery)
 	default:
 		m.Service.RunCmd(req.Cmd, delivery)
 		baseCmd = true
@@ -143,7 +143,9 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 	if err != nil {
 		m.AnswerWithError(delivery, err, req.Cmd)
 	} else {
-		m.Log.Debug(string(data))
+		if len(data) > 0 {
+			m.Log.Debug(string(data))
+		}
 		m.Answer(delivery, data)
 	}
 }
@@ -191,6 +193,17 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) (
 	if err := m.poller.Decode(searchURL(release), m.headers, &preResult); err != nil {
 		return nil, err
 	}
+	// m.Log.Error("A")
+	// data, err := m.poller.Load(searchURL(release), m.headers)
+	// m.Log.Error("B")
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// m.Log.Error(string(data))
+	// err = json.Unmarshal(data, &preResult)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	var score float64
 	// предварительные предложения
 	for _, r := range preResult.Search() {
