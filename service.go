@@ -124,36 +124,48 @@ func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 
 // RunCmd вызывает командам  запроса методы сервиса и возвращает результат клиенту.
 func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
+	var data []byte
+	var err error
+	var baseCmd bool
+
 	switch req.Cmd {
 	case "release":
 		go m.release(req, delivery)
 	default:
 		m.Service.RunCmd(req.Cmd, delivery)
+		baseCmd = true
+	}
+
+	if baseCmd {
+		return
+	}
+
+	if err != nil {
+		m.AnswerWithError(delivery, err, req.Cmd)
+	} else {
+		m.Log.Debug(string(data))
+		m.Answer(delivery, data)
 	}
 }
 
-func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) {
-	// разбор параметров входного запроса
+func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) (
+	[]byte, error) {
+
 	var err error
 	var set *md.SuggestionSet
+
 	if _, ok := request.Release.IDs[ServiceName]; ok {
 		set, err = m.searchReleaseByID(request.Release.IDs[ServiceName])
 	} else {
 		set, err = m.searchReleaseByIncompleteData(request.Release)
 	}
 	if err != nil {
-		m.AnswerWithError(delivery, err, "Getting release data")
-		return
+		return nil, err
 	}
+
 	set.Optimize()
-	// отправка ответа
-	suggestionsJSON, err := json.Marshal(set)
-	if err != nil {
-		m.AnswerWithError(delivery, err, "Response")
-	} else {
-		m.Log.Debug(string(suggestionsJSON))
-		m.Answer(delivery, suggestionsJSON)
-	}
+
+	return json.Marshal(set)
 }
 
 func (m *Musicbrainz) searchReleaseByID(id string) (*md.SuggestionSet, error) {
