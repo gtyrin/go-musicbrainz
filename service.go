@@ -106,7 +106,7 @@ func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 			m.Log.WithField("args", req.Release.IDs[ServiceName]).Info(req.Cmd + "()")
 		} else { // TODO: может стоит офомить метод String() для md.Release?
 			var args []string
-			if actor := string(req.Release.ActorRoles.Filter(md.IsPerformer).First()); actor != "" {
+			if actor := req.Release.ActorRoles.Filter(md.IsPerformer).First(); actor != "" {
 				args = append(args, actor)
 			}
 			if req.Release.Title != "" {
@@ -271,7 +271,7 @@ func searchURL(release *md.Release) string {
 			if arid, ok := release.Actors[firstPerformer][ServiceName]; ok { // MUSICBRAINZ_ALBUMARTISTID
 				p = append(p, queryParam("arid", arid))
 			} else {
-				p = append(p, queryParam("artist", string(firstPerformer)))
+				p = append(p, queryParam("artist", firstPerformer))
 			}
 		}
 	}
