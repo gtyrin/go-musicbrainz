@@ -16,10 +16,15 @@ type AudioOnlineRequest struct {
 	// *md.Publishing
 }
 
-type AudioOnlineDBClient struct {
-	*srv.RPCClient
-	req *AudioOnlineRequest
+type AudioOnlineResponse struct {
+	SuggestionSet *md.SuggestionSet `json:"suggestion_set,omitempty"`
+	Error         srv.ErrorResponse `json:"error,omitempty"`
 }
+
+// type AudioOnlineDBClient struct {
+// 	*srv.RPCClient
+// 	req *AudioOnlineRequest
+// }
 
 // CreateReleaseRequest формирует данные запроса поиска релиза по указанным метаданным.
 func CreateReleaseRequest(r *md.Release) (string, []byte, error) {
@@ -35,10 +40,10 @@ func CreateReleaseRequest(r *md.Release) (string, []byte, error) {
 }
 
 // ParseReleaseAnswer разбирает ответ с предложением метаданных релиза.
-func ParseReleaseAnswer(data []byte) (*md.SuggestionSet, error) {
-	set := md.NewSuggestionSet()
-	if err := json.Unmarshal(data, &set); err != nil {
+func ParseReleaseAnswer(data []byte) (*AudioOnlineResponse, error) {
+	resp := AudioOnlineResponse{SuggestionSet: md.NewSuggestionSet()}
+	if err := json.Unmarshal(data, &resp); err != nil {
 		return nil, err
 	}
-	return set, nil
+	return &resp, nil
 }

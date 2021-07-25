@@ -61,6 +61,22 @@ func New(app, key, secret string) *Musicbrainz {
 	return ret
 }
 
+// AnswerWithError заполняет структуру ответа информацией об ошибке.
+func (m *Musicbrainz) AnswerWithError(delivery *amqp.Delivery, err error, context string) {
+	m.LogOnError(err, context)
+	req := &AudioOnlineResponse{
+		Error: srv.ErrorResponse{
+			Error:   err.Error(),
+			Context: context,
+		},
+	}
+	data, err := json.Marshal(req)
+	if err != nil {
+		srv.FailOnError(err, "Answer marshalling error")
+	}
+	m.Answer(delivery, data)
+}
+
 // TestPollingInterval выполняет определение частоты опроса сервера на примере
 // тестового запроса. Периодичность расчитывается в наносекундах.
 // TODO: реализовать тестовый запрос.
@@ -126,17 +142,12 @@ func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 	var data []byte
 	var err error
-	var baseCmd bool
 
 	switch req.Cmd {
 	case "release":
 		data, err = m.release(req, delivery)
 	default:
 		m.Service.RunCmd(req.Cmd, delivery)
-		baseCmd = true
-	}
-
-	if baseCmd {
 		return
 	}
 
@@ -151,9 +162,8 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 }
 
 func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) (
-	[]byte, error) {
+	_ []byte, err error) {
 
-	var err error
 	var set *md.SuggestionSet
 
 	if _, ok := request.Release.IDs[ServiceName]; ok {
@@ -162,12 +172,12 @@ func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delive
 		set, err = m.searchReleaseByIncompleteData(request.Release)
 	}
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	set.Optimize()
 
-	return json.Marshal(set)
+	return json.Marshal(AudioOnlineResponse{SuggestionSet: set})
 }
 
 func (m *Musicbrainz) searchReleaseByID(id string) (*md.SuggestionSet, error) {

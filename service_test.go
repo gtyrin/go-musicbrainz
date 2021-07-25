@@ -62,11 +62,14 @@ func (suite *MusicbrainzTestSuite) TestSearchRelease() {
 	require.NoError(suite.T(), err)
 	suite.cl.Request(ServiceName, correlationID, data)
 
-	set, err := ParseReleaseAnswer(suite.cl.Result(correlationID))
+	resp, err := ParseReleaseAnswer(suite.cl.Result(correlationID))
 	require.NoError(suite.T(), err)
+	require.Empty(suite.T(), resp.Error)
 
-	suite.NotEmpty(set)
-	suite.Equal(strings.ToLower(set.Suggestions[0].Release.Title), "the dark side of the moon")
+	suite.NotEmpty(resp)
+	suite.Equal(
+		strings.ToLower(resp.SuggestionSet.Suggestions[0].Release.Title),
+		"the dark side of the moon")
 }
 
 func (suite *MusicbrainzTestSuite) startTestService() {
