@@ -18,7 +18,7 @@ type AudioOnlineRequest struct {
 
 type AudioOnlineResponse struct {
 	SuggestionSet *md.SuggestionSet `json:"suggestion_set,omitempty"`
-	Error         srv.ErrorResponse `json:"error,omitempty"`
+	Error         *srv.ErrorResponse `json:"error,omitempty"`
 }
 
 // type AudioOnlineDBClient struct {

@@ -65,7 +65,7 @@ func New(app, key, secret string) *Musicbrainz {
 func (m *Musicbrainz) AnswerWithError(delivery *amqp.Delivery, err error, context string) {
 	m.LogOnError(err, context)
 	req := &AudioOnlineResponse{
-		Error: srv.ErrorResponse{
+		Error: &srv.ErrorResponse{
 			Error:   err.Error(),
 			Context: context,
 		},
@@ -145,7 +145,7 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 
 	switch req.Cmd {
 	case "release":
-		data, err = m.release(req, delivery)
+		data, err = m.release(req)
 	default:
 		m.Service.RunCmd(req.Cmd, delivery)
 		return
@@ -161,8 +161,7 @@ func (m *Musicbrainz) RunCmd(req *AudioOnlineRequest, delivery *amqp.Delivery) {
 	}
 }
 
-func (m *Musicbrainz) release(request *AudioOnlineRequest, delivery *amqp.Delivery) (
-	_ []byte, err error) {
+func (m *Musicbrainz) release(request *AudioOnlineRequest) (_ []byte, err error) {
 
 	var set *md.SuggestionSet
 
