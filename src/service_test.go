@@ -18,8 +18,8 @@ import (
 
 // Тестовые файлы.
 const (
-	testSearchJSON  = "testdata/search.json"
-	testReleaseJSON = "testdata/release.json"
+	testSearchJSON  = "../testdata/search.json"
+	testReleaseJSON = "../testdata/release.json"
 )
 
 type MusicbrainzTestSuite struct {
@@ -64,11 +64,10 @@ func (suite *MusicbrainzTestSuite) TestSearchRelease() {
 
 	resp, err := ParseReleaseAnswer(suite.cl.Result(correlationID))
 	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), resp.Error)
-
 	suite.NotEmpty(resp)
+
 	suite.Equal(
-		strings.ToLower(resp.SuggestionSet.Suggestions[0].Release.Title),
+		strings.ToLower(resp.Unwrap().Suggestions[0].Release.Title),
 		"the dark side of the moon")
 }
 

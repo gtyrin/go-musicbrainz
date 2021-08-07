@@ -18,8 +18,10 @@ import (
 	srv "github.com/ytsiuryn/ds-microservice"
 )
 
-// Описание сервиса
-const ServiceName = "musicbrainz"
+// Константы сервиса
+const (
+	ServiceName = "musicbrainz"
+)
 
 // Suggestion constants
 const (
@@ -71,9 +73,7 @@ func (m *Musicbrainz) AnswerWithError(delivery *amqp.Delivery, err error, contex
 		},
 	}
 	data, err := json.Marshal(req)
-	if err != nil {
-		srv.FailOnError(err, "Answer marshalling error")
-	}
+	srv.FailOnError(err, "Answer marshalling error")
 	m.Answer(delivery, data)
 }
 
@@ -119,7 +119,7 @@ func (m *Musicbrainz) cleanup() {
 func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 	if req.Release != nil {
 		if _, ok := req.Release.IDs[ServiceName]; ok {
-			m.Log.WithField("args", req.Release.IDs[ServiceName]).Info(req.Cmd + "()")
+			m.Log.WithField("release", req.Release.IDs[ServiceName]).Info(req.Cmd + "()")
 		} else { // TODO: может стоит офомить метод String() для md.Release?
 			var args []string
 			if actor := req.Release.ActorRoles.Filter(md.IsPerformer).First(); actor != "" {
@@ -131,7 +131,7 @@ func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 			if req.Release.Year != 0 {
 				args = append(args, strconv.Itoa(req.Release.Year))
 			}
-			m.Log.WithField("args", strings.Join(args, "-")).Info(req.Cmd + "()")
+			m.Log.WithField("release", strings.Join(args, "-")).Info(req.Cmd + "()")
 		}
 	} else {
 		m.Log.Info(req.Cmd + "()")

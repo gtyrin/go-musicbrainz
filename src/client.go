@@ -2,6 +2,7 @@ package musicbrainz
 
 import (
 	"encoding/json"
+	"errors"
 
 	"github.com/gofrs/uuid"
 
@@ -9,6 +10,7 @@ import (
 	srv "github.com/ytsiuryn/ds-microservice"
 )
 
+// AudioOnlineRequest описывает структуру запроса к микросервису.
 type AudioOnlineRequest struct {
 	Cmd     string      `json:"cmd"`
 	Release *md.Release `json:"release"`
@@ -16,8 +18,9 @@ type AudioOnlineRequest struct {
 	// *md.Publishing
 }
 
+// AudioOnlineResponse описывает структуру ответа микросервиса.
 type AudioOnlineResponse struct {
-	SuggestionSet *md.SuggestionSet `json:"suggestion_set,omitempty"`
+	SuggestionSet *md.SuggestionSet  `json:"suggestion_set,omitempty"`
 	Error         *srv.ErrorResponse `json:"error,omitempty"`
 }
 
@@ -25,6 +28,15 @@ type AudioOnlineResponse struct {
 // 	*srv.RPCClient
 // 	req *AudioOnlineRequest
 // }
+
+// Unwrap контроллирует значение ответа микросервиса, и, в случае ошибки,
+// печатает сведения об ошибке и останавливает процесс с запущенным клиентом.
+func (resp *AudioOnlineResponse) Unwrap() *md.SuggestionSet {
+	if resp.Error != nil {
+		srv.FailOnError(errors.New(resp.Error.Error), resp.Error.Context)
+	}
+	return resp.SuggestionSet
+}
 
 // CreateReleaseRequest формирует данные запроса поиска релиза по указанным метаданным.
 func CreateReleaseRequest(r *md.Release) (string, []byte, error) {
