@@ -18,8 +18,8 @@ import (
 
 // Тестовые файлы.
 const (
-	testSearchJSON  = "../testdata/search.json"
-	testReleaseJSON = "../testdata/release.json"
+	testSearchJSON  = "testdata/search.json"
+	testReleaseJSON = "testdata/release.json"
 )
 
 type MusicbrainzTestSuite struct {
@@ -76,9 +76,8 @@ func (suite *MusicbrainzTestSuite) startTestService() {
 		os.Getenv("MUSICBRAINZ_APP"),
 		os.Getenv("MUSICBRAINZ_KEY"),
 		os.Getenv("MUSICBRAINZ_SECRET"))
-	msgs := testService.ConnectToMessageBroker("amqp://guest:guest@localhost:5672/")
 	testService.Log.SetLevel(log.DebugLevel)
-	go testService.Start(msgs)
+	go testService.StartWithConnection("amqp://guest:guest@localhost:5672/")
 }
 
 func TestSearchResponseParsing(t *testing.T) {

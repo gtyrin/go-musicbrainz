@@ -65,7 +65,7 @@ func New(app, key, secret string) *Musicbrainz {
 
 // AnswerWithError заполняет структуру ответа информацией об ошибке.
 func (m *Musicbrainz) AnswerWithError(delivery *amqp.Delivery, err error, context string) {
-	m.LogOnError(err, context)
+	m.LogOnErrorWithContext(err, context)
 	req := &AudioOnlineResponse{
 		Error: &srv.ErrorResponse{
 			Error:   err.Error(),
@@ -84,9 +84,11 @@ func (m *Musicbrainz) TestPollingInterval() {
 	// m.Log.Info("Polling interval: ", m.poller.PollingInterval())
 }
 
-// Start запускает Web Poller и цикл обработки взодящих запросов.
+// StartWithConnection запускает Web Poller и цикл обработки взодящих запросов.
 // Контролирует сигнал завершения цикла и последующего освобождения ресурсов микросервиса.
-func (m *Musicbrainz) Start(msgs <-chan amqp.Delivery) {
+func (m *Musicbrainz) StartWithConnection(connstr string) {
+	msgs := m.Service.ConnectToMessageBroker(connstr)
+
 	m.poller.Start()
 	go m.TestPollingInterval()
 
