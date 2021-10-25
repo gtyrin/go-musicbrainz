@@ -1,7 +1,7 @@
 import json
 import pika
 import uuid
-import fastunit
+import unittest
 
 
 release_musicbrainz_id_data = {
@@ -80,13 +80,16 @@ class OnlineDBClient(RPCClient):
         return self.call(
             {"cmd": "release", "release": release_data})
 
+    def release(self, resp):
+        return resp["suggestion_set"]["suggestions"][0]["release"]
+
 
 class MusicbrainzClient(OnlineDBClient):
     def __init__(self):
         super().__init__('musicbrainz')
 
 
-class TestMusicbrainz(fastunit.TestCase):
+class TestMusicbrainz(unittest.TestCase):
     def setUp(self):
         self.cl = MusicbrainzClient()
 
@@ -104,15 +107,13 @@ class TestMusicbrainz(fastunit.TestCase):
         resp = json.loads(
             self.cl.call({"cmd": "release", "release": release_musicbrainz_id_data}))
         self.assertEqual(
-            resp[0]["release"]["title"].lower(),
-            "the dark side of the moon")
+            self.cl.release(resp)["title"].lower(), "the dark side of the moon")
 
     def test_search_by_release(self):
         resp = json.loads(self.cl.search_by_release_data(incomplete_data))
         self.assertEqual(
-            resp[0]["release"]["title"].lower(),
-            "the dark side of the moon")
+            self.cl.release(resp)["title"].lower(), "the dark side of the moon")
 
 
 if __name__ == '__main__':
-    fastunit.main()
+    unittest.main()
