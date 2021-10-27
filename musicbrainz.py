@@ -12,17 +12,20 @@ release_musicbrainz_id_data = {
 
 incomplete_data = {
     "year": 1977,
-    "publishing": [
-        {
-            "name": "Harvest",
-            "catno": "SHVL 804"
-        }
-    ],
+    "publishing": {
+        "labels": [
+            {
+                "name": "Harvest",
+                "catno": "SHVL 804"
+            }
+        ]
+    },
     "title": "The Dark Side Of The Moon",
     "actor_roles": {
         "Pink Floyd": ["performer"]
     }
 }
+
 
 class RPCClient(object):
 
