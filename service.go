@@ -120,9 +120,9 @@ func (m *Musicbrainz) cleanup() {
 // Отображение сведений о выполняемом запросе.
 func (m *Musicbrainz) logRequest(req *AudioOnlineRequest) {
 	if req.Release != nil {
-		if _, ok := req.Release.IDs[ServiceName]; ok {
-			m.Log.WithField("release", req.Release.IDs[ServiceName]).Info(req.Cmd + "()")
-		} else { // TODO: может стоит офомить метод String() для md.Release?
+		if _, ok := req.Release.IDs[md.MusicbrainzAlbumID]; ok {
+			m.Log.WithField("release", req.Release.IDs[md.MusicbrainzAlbumID]).Info(req.Cmd + "()")
+		} else { // TODO: может стоит оформить метод String() для md.Release?
 			var args []string
 			if actor := req.Release.ActorRoles.Filter(md.IsPerformer).First(); actor != "" {
 				args = append(args, actor)
@@ -167,8 +167,8 @@ func (m *Musicbrainz) release(request *AudioOnlineRequest) (_ []byte, err error)
 
 	var set *md.SuggestionSet
 
-	if _, ok := request.Release.IDs[ServiceName]; ok {
-		set, err = m.searchReleaseByID(request.Release.IDs[ServiceName])
+	if _, ok := request.Release.IDs[md.MusicbrainzAlbumID]; ok {
+		set, err = m.searchReleaseByID(request.Release.IDs[md.MusicbrainzAlbumID])
 	} else {
 		set, err = m.searchReleaseByIncompleteData(request.Release)
 	}
@@ -201,20 +201,9 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) (
 	var suggestions []*md.Suggestion
 	// musicbrainz release search...
 	var preResult releaseSearchResult
-	if err := m.poller.Decode(searchURL(release), m.headers, &preResult); err != nil {
+	if err := m.poller.DecodeJSON(searchURL(release), m.headers, &preResult); err != nil {
 		return nil, err
 	}
-	// m.Log.Error("A")
-	// data, err := m.poller.Load(searchURL(release), m.headers)
-	// m.Log.Error("B")
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// m.Log.Error(string(data))
-	// err = json.Unmarshal(data, &preResult)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	var score float64
 	// предварительные предложения
 	for _, r := range preResult.Search() {
@@ -233,7 +222,7 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) (
 	// окончательные предложения
 	for i := len(suggestions) - 1; i >= 0; i-- {
 		r := suggestions[i].Release
-		if err := m.releaseByID(r.IDs[ServiceName], r); err != nil {
+		if err := m.releaseByID(r.IDs[md.MusicbrainzAlbumID], r); err != nil {
 			return nil, err
 		}
 		if score = release.Compare(r); score > MinSearchFullResult {
@@ -254,7 +243,7 @@ func (m *Musicbrainz) searchReleaseByIncompleteData(release *md.Release) (
 func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
 	// release request...
 	var releaseResp releaseInfo
-	if err := m.poller.Decode(
+	if err := m.poller.DecodeJSON(
 		BaseURL+"release/"+id+releaseParams, m.headers, &releaseResp); err != nil {
 		return err
 	}
@@ -265,7 +254,7 @@ func (m *Musicbrainz) releaseByID(id string, release *md.Release) error {
 func (m *Musicbrainz) pictures(entityType, id string) ([]*md.PictureInAudio, error) {
 	var ret []*md.PictureInAudio
 	var ci coverInfo
-	if err := m.poller.Decode(coverURL(entityType, id), m.headers, &ci); err != nil {
+	if err := m.poller.DecodeJSON(coverURL(entityType, id), m.headers, &ci); err != nil {
 		return nil, err
 	}
 	if cover := ci.Cover(); cover != nil {
@@ -279,7 +268,7 @@ func searchURL(release *md.Release) string {
 	if performers := release.ActorRoles.Filter(md.IsPerformer); len(performers) > 0 {
 		firstPerformer := performers.First()
 		if firstPerformer != "" {
-			if arid, ok := release.Actors[firstPerformer][ServiceName]; ok { // MUSICBRAINZ_ALBUMARTISTID
+			if arid, ok := release.Actors[firstPerformer][md.MusicbrainzArtistID]; ok {
 				p = append(p, queryParam("arid", arid))
 			} else {
 				p = append(p, queryParam("artist", firstPerformer))
@@ -289,12 +278,17 @@ func searchURL(release *md.Release) string {
 	if release.Title != "" {
 		p = append(p, queryParam("release", release.Title))
 	}
-	if len(release.Publishing) > 0 {
-		if len(release.Publishing[0].Name) > 0 {
-			p = append(p, queryParam("label", release.Publishing[0].Name))
+	// FIXME: barcode больше относится к публикации
+	if _, ok := release.Publishing.IDs[md.Barcode]; ok {
+		p = append(p, queryParam("barcode", release.Publishing.IDs[md.Barcode]))
+	}
+	labels := release.Publishing.Labels
+	if len(labels) > 0 {
+		if len(labels[0].Label) > 0 {
+			p = append(p, queryParam("label", labels[0].Label))
 		}
-		if len(release.Publishing[0].Catno) > 0 {
-			p = append(p, queryParam("catno", release.Publishing[0].Catno))
+		if len(labels[0].Catno) > 0 {
+			p = append(p, queryParam("catno", labels[0].Catno))
 		}
 	}
 	// if release.Year != 0 {

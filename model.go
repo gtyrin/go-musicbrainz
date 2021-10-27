@@ -194,18 +194,18 @@ func (ri *releaseInfo) Release(r *md.Release) {
 	// album.Record
 	r.Country = ri.Country
 	// album.Edition.ExtraInfo
-	r.IDs["musicbrainz"] = ri.ID
+	r.IDs[md.MusicbrainzAlbumID] = ri.ID
 	if len(ri.Barcode) > 0 {
-		r.IDs["barcode"] = ri.Barcode
+		r.Publishing.IDs[md.Barcode] = ri.Barcode
 	}
 	if len(ri.Asin) > 0 {
-		r.IDs["asin"] = ri.Asin
+		r.IDs[md.Asin] = ri.Asin
 	}
 	r.Notes = ri.Annotation
 	for _, li := range ri.LabelInfo {
-		lbl := li.Publishing()
-		if !collection.Contains(lbl, r.Publishing) {
-			r.Publishing = append(r.Publishing, lbl)
+		lbl := li.NewLabel()
+		if !collection.Contains(lbl, r.Publishing.Labels) {
+			r.Publishing.Labels = append(r.Publishing.Labels, lbl)
 		}
 	}
 	r.Year = tp.NaiveStringToInt(ri.Date)
@@ -231,7 +231,7 @@ func (ri *releaseInfo) Release(r *md.Release) {
 }
 
 func (rgi releaseGroup) ReleaseGroup(r *md.Release) {
-	r.Original.IDs[ServiceName] = rgi.ID
+	r.Original.IDs[md.MusicbrainzReleaseGroupID] = rgi.ID
 	r.Original.Year = tp.NaiveStringToInt(strings.SplitN(rgi.FirstReleaseDate, "-", 3)[0])
 	if len(rgi.Annotation) > 0 {
 		r.Original.Notes = rgi.Annotation
@@ -251,13 +251,13 @@ func (rs releaseSearchResult) Search() []*md.Release {
 
 func (si releaseSearchItem) Release() *md.Release {
 	r := md.NewRelease()
-	r.IDs[ServiceName] = si.ID
+	r.IDs[md.MusicbrainzAlbumID] = si.ID
 	r.Title = si.Title
 	if len(si.Barcode) > 0 {
-		r.IDs["barcode"] = si.Barcode
+		r.Publishing.IDs[md.Barcode] = si.Barcode
 	}
 	for _, li := range si.LabelInfo {
-		r.Publishing = append(r.Publishing, li.Publishing())
+		r.Publishing.Labels = append(r.Publishing.Labels, li.NewLabel())
 	}
 	for _, ac := range si.ArtistCredit {
 		ac.AddPerformer(r)
@@ -285,18 +285,17 @@ func (ci coverInfo) Cover() *md.PictureInAudio {
 	return nil
 }
 
-func (li labelInfo) Publishing() *md.Publishing {
-	ret := md.NewReleaseLabel(li.Label.Name)
-	ret.IDs[ServiceName] = li.Label.ID
+func (li labelInfo) NewLabel() *md.Label {
+	lbl := md.NewLabel(li.Label.Name, li.CatalogNumber)
 	if li.CatalogNumber != "" {
-		ret.Catno = li.CatalogNumber
+		lbl.IDs[md.MusicbrainzLabelID] = li.Label.ID
 	}
-	return ret
+	return lbl
 }
 
 func (ac artistCredit) AddPerformer(r *md.Release) {
 	if ac.Name != "" {
-		r.Actors.Add(ac.Name, ServiceName, ac.Artist.ID)
+		r.Actors.Add(ac.Name, md.DiscogsArtistID, ac.Artist.ID)
 		r.ActorRoles.Add(ac.Name, "performer")
 	}
 }
@@ -334,7 +333,7 @@ func (rel *relation) AddActor(track *md.Track) {
 		}
 		for _, role := range roles {
 			ActorsByRole(track, role).Add(rel.Artist.Name, role)
-			track.Actors.Add(rel.Artist.Name, ServiceName, rel.Artist.ID)
+			track.Actors.Add(rel.Artist.Name, md.DiscogsArtistID, rel.Artist.ID)
 		}
 	}
 }
