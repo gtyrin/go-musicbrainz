@@ -196,7 +196,7 @@ func (ri *releaseInfo) Release(r *md.Release) {
 	// album.Edition.ExtraInfo
 	r.IDs[md.MusicbrainzAlbumID] = ri.ID
 	if len(ri.Barcode) > 0 {
-		r.Publishing.IDs[md.Barcode] = ri.Barcode
+		r.Publishing.IDs[md.PublishingBarcode] = ri.Barcode
 	}
 	if len(ri.Asin) > 0 {
 		r.IDs[md.Asin] = ri.Asin
@@ -254,7 +254,7 @@ func (si releaseSearchItem) Release() *md.Release {
 	r.IDs[md.MusicbrainzAlbumID] = si.ID
 	r.Title = si.Title
 	if len(si.Barcode) > 0 {
-		r.Publishing.IDs[md.Barcode] = si.Barcode
+		r.Publishing.IDs[md.PublishingBarcode] = si.Barcode
 	}
 	for _, li := range si.LabelInfo {
 		r.Publishing.Labels = append(r.Publishing.Labels, li.NewLabel())

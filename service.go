@@ -278,9 +278,8 @@ func searchURL(release *md.Release) string {
 	if release.Title != "" {
 		p = append(p, queryParam("release", release.Title))
 	}
-	// FIXME: barcode больше относится к публикации
-	if _, ok := release.Publishing.IDs[md.Barcode]; ok {
-		p = append(p, queryParam("barcode", release.Publishing.IDs[md.Barcode]))
+	if _, ok := release.Publishing.IDs[md.PublishingBarcode]; ok {
+		p = append(p, queryParam("barcode", release.Publishing.IDs[md.PublishingBarcode]))
 	}
 	labels := release.Publishing.Labels
 	if len(labels) > 0 {
